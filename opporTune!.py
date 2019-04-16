@@ -8,12 +8,13 @@ import librosa as _librosa
 import librosa.display as _display
 
 #Change presets of the library to the ones needed for our audio analysis
+#From https://librosa.github.io/librosa/auto_examples/plot_presets.html
 librosa = Preset(_librosa)
 librosa['sr'] = 44100
 librosa['hop_length'] = 2048 #windowing size
 librosa['n_fft'] = 4096
 minDB = 30 
-neighborSize = 20 
+neighborSize = 40 
 
 trial = input("Give me a song path!") 
 #Use this as template, if lost /Users/aditiraghavan/Documents/PraNos.mp3
@@ -30,24 +31,31 @@ def peakArray(arr2D, neighborSize):
     for row in range(rows):
         tempArrRow = arr2D[row]
         for col in range(cols):
-            if col + neighborSize < cols:
-                tempNeighbor = tempArrRow[col:col + neighborSize]   
+            if col < neighborSize:
+                startIdx = 0
+            else:
+                startIdx = col - neighborSize
+            if col + neighborSize >= cols:
+                endIdx = cols - 1
             else: 
-                tempNeighbor = tempArrRow[col:]
+                endIdx = col + neighborSize
+            tempNeighbor = tempArrRow[startIdx:endIdx]
             maxFound =  max(tempNeighbor)
             maxIndex = np.argmax(tempNeighbor) #only gets you
             # the first index if there > 1, but does not affect functionality
             if maxFound < minDB:
                 maxIndex = -1 #change to reduce runtime
-            for elem in range(len(tempNeighbor)):
+            for elem in range(len(tempNeighbor) + 1):
                 if elem == maxIndex:
-                    peaks[row][col+elem] = 1
+                    peaks[row][startIdx+elem] = 1
                 else:
-                    peaks[row][col+elem] = 0      
+                    peaks[row][startIdx+elem] = 0 
     return peaks    
            
 melFilter = peakArray(melTransform, neighborSize)
-      
+ 
+#https://librosa.github.io/librosa/generated/librosa.core.power_to_db.html
+#for more information https://matplotlib.org/     
 #Fingerprints in song, shown in a figure
 plt.figure()
 librosa.display.specshow(librosa.power_to_db(melFilter, ref = np.max), y_axis='mel', fmax=8000, x_axis='time') 
