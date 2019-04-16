@@ -30,10 +30,15 @@ def peakArray(arr2D, neighborSize):
     for row in range(rows):
         tempArrRow = arr2D[row]
         for col in range(cols):
-            if col + neighborSize < cols:
-                tempNeighbor = tempArrRow[col:col + neighborSize]   
-            else: 
-                tempNeighbor = tempArrRow[col:]
+            if col - neighborSize < 0:
+                 start_idx = 0
+            else:
+                 star_idx = col - neighborSize
+            if col + neighborSize >= cols:
+                 end_idx = cols - 1
+            else:
+                 end_idx = col + neighborSize
+            tempNeighbor = tempArrRow[start_idx:end_idx] 
             maxFound =  max(tempNeighbor)
             maxIndex = np.argmax(tempNeighbor) #only gets you
             # the first index if there > 1, but does not affect functionality
