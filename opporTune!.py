@@ -33,7 +33,7 @@ def peakArray(arr2D, neighborSize):
             if col - neighborSize < 0:
                  start_idx = 0
             else:
-                 start_idx = col - neighborSize
+                 star_idx = col - neighborSize
             if col + neighborSize >= cols:
                  end_idx = cols - 1
             else:
