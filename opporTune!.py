@@ -44,12 +44,8 @@ def peakArray(arr2D, neighborSize):
             maxIndex = np.argmax(tempNeighbor) #only gets you
             # the first index if there > 1, but does not affect functionality
             if maxFound < minDB:
-                maxIndex = -1 #change to reduce runtime
-            for elem in range(len(tempNeighbor) + 1):
-                if elem == maxIndex:
-                    peaks[row][startIdx+elem] = 1
-                else:
-                    peaks[row][startIdx+elem] = 0 
+                if maxIndex == col: 
+                    peaks[row][col] = 1 
     return peaks    
            
 melFilter = peakArray(melTransform, neighborSize)
