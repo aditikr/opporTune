@@ -1,0 +1,62 @@
+import sys
+import os
+from tkinter import filedialog
+from tkinter import *
+import opportune
+
+
+master = Tk()
+
+def uploadWrapper():
+    master.withdraw()
+    upload = Tk()
+    print ("Time to upload a song")
+    #https://pythonspot.com/tk-file-dialogs/
+    song = filedialog.askopenfilename(initialdir = "/",title = "Select file")
+    upload.destroy()
+    master.deiconify()
+    opportune.fingerprint(song)
+    pass
+    
+def recordWrapper():
+    print ("Time to record a song")
+    print(opportune.recognize())
+
+def libraryWrapper():
+    master.withdraw()
+    library = Tk()
+    print ("Add to library")
+    #https://pythonspot.com/tk-file-dialogs/
+    folder = filedialog.askdirectory()
+    listSong = listFiles(folder)
+    for song in listSong:
+        try:
+            opportune.addToLibrary(song)
+        except:
+            print("Error reading file, moving to next one")
+    opportune.saveDict()
+    library.destroy()
+    master.deiconify()
+    pass
+
+#Taken from https://www.cs.cmu.edu/~112/notes/notes-recursive-applications.html#listFiles
+def listFiles(path):
+    if os.path.isfile(path):
+        # Base Case: return a list of just this file
+        return [ path ]
+    else:
+        # Recursive Case: create a list of all the recursive results from the files in the folder
+        files = [ ]
+        for filename in os.listdir(path):
+            files += listFiles(path + "/" + filename)
+        return files
+    
+
+upload = Button(master, text =" Upload a song", command=uploadWrapper)
+upload.pack()
+record = Button(master, text = "Record a song with a microphone", command = recordWrapper)
+record.pack()
+addToLibrary = Button(master, text = "Add to Library", command = libraryWrapper)
+addToLibrary.pack()
+
+mainloop()

@@ -13,6 +13,7 @@ import csv #store hashes in csv file which can be loaded as dict
 from collections import defaultdict
 import pyaudio
 import wave
+import eyed3
 
 #Change presets of the library to the ones needed for our audio analysis
 #From https://librosa.github.io/librosa/auto_examples/plot_presets.html
@@ -29,6 +30,9 @@ songList= list()
 matchThresh = 10
 songsPlayed = 0
 
+#load songs, upload folder of songs - parse all of them 
+# song contain filename, songName, artist name, description 
+#reach goal - get song 
 
 # might make sense to use default dict for speed purposes
 def loadDict(hashCsv):
@@ -45,11 +49,12 @@ def loadDict(hashCsv):
         print('No existing file') 
 
    
-def saveDict(hashCsv, masterDict):
+def saveDict(hashCsv = "hashSong.csv", mainDict = masterDict):
+    
     with open(hashCsv, 'w') as file:
-        for hashVal in masterDict:
+        for hashVal in mainDict:
             file.write(str(hashVal))
-            for elem in masterDict[hashVal]:
+            for elem in mainDict[hashVal]:
                 file.write(",")
                 file.write(str(elem[0]))
                 file.write(",")
@@ -63,12 +68,6 @@ def songIndex(song):
         songList.append(song)
         return len(songList) - 1
     
-'''
-class Song(object):
-   def __init__(self,path):
-        self.songID = os.path.basename(os.path.normpath(song))
-        self.songIndex = songIndex(songID) 
-        self.songArray, self.samplingRate = librosa.load(path)'''
     
 #Use this as template, if lost /Users/aditiraghavan/Documents/PraNos.mp3
 #Fingerprints the song sample
@@ -83,6 +82,9 @@ def fingerprint(song):
     fftTransform = fftTransform.transpose()
     print('transpose finished', fftTransform.shape)
     fftFilter, indexList = peakArray(fftTransform, neighborSize)
+    return indexList
+    
+    ''''
     print('peak finished', fftFilter.shape)
     fftFilter= fftFilter.transpose()
     print('transpose 2 finished', fftFilter.shape)
@@ -90,7 +92,7 @@ def fingerprint(song):
     #createHash(indexList,15,masterDict,songID)
     #saveDict('hashSong.csv', masterDict)
     pass
-    
+    '''
 '''
     #plt.show()
     timeIdx = list()
@@ -105,7 +107,11 @@ def fingerprint(song):
     ax.set_ylabel('Frequency')
     plt.gca().invert_yaxis()
     plt.show()'''
-   
+
+def addToLibrary(song):
+    songID = os.path.basename(os.path.normpath(song))
+    indexList = fingerprint(song)
+    createHash(indexList,15,masterDict,songID)
 
 #https://librosa.github.io/librosa/generated/librosa.core.power_to_db.html
 #for more information https://matplotlib.org/     
@@ -173,10 +179,6 @@ def createHash(peakIndex, fanOut, mainDict, songID):
     pass
     
 ## Recognizer
-import pyaudio
-import wave
-
-
    
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -220,12 +222,15 @@ def recognize():
     fftTransform = fftTransform.transpose()
     fftFilter, indexList = peakArray(fftTransform, neighborSize)
     fftFilter= fftFilter.transpose()
-    print(indexList,neighborSize, masterDict, matchThresh)
+    #print(indexList,neighborSize, masterDict, matchThresh)
     SongID, offset = match(indexList,neighborSize, masterDict, matchThresh)
     return SongID, offset
 
-
+#After fingerprinting song,it checks if it is already in the database
 def match(peakIndex, fanOut, mainDict, matchThresh):
+    #https://stackoverflow.com/questions/29348345/declaring-a-multi-dimensional-dictionary-in-python
+    count = defaultdict(dict)
+    threshold = 20
     for i in range(len(peakIndex)):
         for j in range(fanOut):
             if i + j < len(peakIndex):
@@ -238,15 +243,15 @@ def match(peakIndex, fanOut, mainDict, matchThresh):
                     tempKey = (hash((delTime,freq1,freq2)))
                     if tempKey in masterDict:
                         for value in masterDict[tempKey]:
-                            songID = tuples[0]
-                            time = tuples[1]
+                            songID = value[0]
+                            time = value[1]
                             offset = time - time1
-                            if songID in count and offset in count[SongID]:
+                            if songID in count and offset in count[songID]:
                                 count[songID][offset] += 1 
                                 if count[songID][offset] == threshold:
                                     return songID,offset
                             else: 
-                                count[SongID][offset] = 1
+                                count[songID][offset] = 1
     return None,None
 
 
