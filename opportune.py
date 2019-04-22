@@ -26,14 +26,15 @@ minDB = -20
 neighborSize = 15
 maxDelTime = 10 
 masterDict = dict()
-songList= list()
+songList= defaultdict(dict)
 matchThresh = 10
 songsPlayed = 0
+hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
 
-#load songs, upload folder of songs - parse all of them 
-# song contain filename, songName, artist name, description 
+
 #reach goal - get song 
 
+#TODO fix loaddict 
 # might make sense to use default dict for speed purposes
 def loadDict(hashCsv):
     #create new csv or load dict as csv
@@ -44,13 +45,13 @@ def loadDict(hashCsv):
         with open(hashCsv, mode='r') as infile:
             reader = csv.reader(infile)
             masterDict = {rows[0]:rows[1:] for rows in reader}
+            print(masterDict)
     except:
         masterDict = dict()
         print('No existing file') 
 
    
-def saveDict(hashCsv = "hashSong.csv", mainDict = masterDict):
-    
+def saveDict(hashCsv = hashPath, mainDict = masterDict):
     with open(hashCsv, 'w') as file:
         for hashVal in mainDict:
             file.write(str(hashVal))
@@ -61,30 +62,37 @@ def saveDict(hashCsv = "hashSong.csv", mainDict = masterDict):
                 file.write(str(elem[1]))
             file.write("\n")
 
-def songIndex(song):
-    if song in songList:
-        return songList.index(song)
-    else:
-        songList.append(song)
-        return len(songList) - 1
-    
+#TODO check if song already in database 
+def songData(song):
+    dataList = list()
+    songID = os.path.basename(os.path.normpath(song))#https://stackoverflow.com/questions/3925096/how-to-get-only-the-last-part-of-a-path-in-python
+    data = eyed3.load(song)
+    songIndex = len(songList)
+    dataList.append(songID)
+    try:
+        dataList.append(data.tag.artist)
+    except:
+        dataList.append("Unknown")
+    try:
+        dataList.append(data.tag.album)
+    except:
+        dataList.append("Unknown")
+    songList[songIndex] = dataList
+    return songIndex
+            
     
 #Use this as template, if lost /Users/aditiraghavan/Documents/PraNos.mp3
 #Fingerprints the song sample
 def fingerprint(song):
-    songID = os.path.basename(os.path.normpath(song))#https://stackoverflow.com/questions/3925096/how-to-get-only-the-last-part-of-a-path-in-python
-    #tempIndex = songIndex(songID)
     y, sr = librosa.load(song)
     fftTransform = np.abs(librosa.core.stft(y=y, n_fft = 4096, hop_length = 2048) )
     fftTransform = librosa.power_to_db(fftTransform, ref = np.max)
-    displaySpectrogram(fftTransform, 'linear', 1)
-    print('before transpose finished', fftTransform.shape)
     fftTransform = fftTransform.transpose()
-    print('transpose finished', fftTransform.shape)
     fftFilter, indexList = peakArray(fftTransform, neighborSize)
     return indexList
     
     ''''
+        displaySpectrogram(fftTransform, 'linear', 1)
     print('peak finished', fftFilter.shape)
     fftFilter= fftFilter.transpose()
     print('transpose 2 finished', fftFilter.shape)
@@ -111,7 +119,8 @@ def fingerprint(song):
 def addToLibrary(song):
     songID = os.path.basename(os.path.normpath(song))
     indexList = fingerprint(song)
-    createHash(indexList,15,masterDict,songID)
+    songIndex = songData(song)
+    createHash(indexList,15,masterDict,songIndex)
 
 #https://librosa.github.io/librosa/generated/librosa.core.power_to_db.html
 #for more information https://matplotlib.org/     
@@ -178,8 +187,7 @@ def createHash(peakIndex, fanOut, mainDict, songID):
                     addToDict(tempKey,songTime, mainDict)
     pass
     
-## Recognizer
-   
+## Recognizer   
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
 SAMPLING = 44100
@@ -212,10 +220,13 @@ def readMic():
     wf.writeframes(b''.join(frames))
     wf.close()
     return waveOutput 
+   
     
-    
-def recognize():
-    song = readMic()
+def recognize(songPath = None):
+    if songPath == None: 
+        song = readMic()
+    else: 
+        song = songPath
     y, sr = librosa.load(song)
     fftTransform = np.abs(librosa.core.stft(y=y, n_fft = 4096,hop_length = 2048) )
     fftTransform = librosa.power_to_db(fftTransform, ref = np.max)

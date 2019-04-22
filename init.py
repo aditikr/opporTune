@@ -4,8 +4,10 @@ from tkinter import filedialog
 from tkinter import *
 import opportune
 
+#TODO add UI for when song is found or not found 
 
 master = Tk()
+#opportune.loadDict()
 
 def uploadWrapper():
     master.withdraw()
@@ -15,7 +17,7 @@ def uploadWrapper():
     song = filedialog.askopenfilename(initialdir = "/",title = "Select file")
     upload.destroy()
     master.deiconify()
-    opportune.fingerprint(song)
+    print(opportune.recognize(song))
     pass
     
 def recordWrapper():
@@ -27,7 +29,10 @@ def libraryWrapper():
     library = Tk()
     print ("Add to library")
     #https://pythonspot.com/tk-file-dialogs/
-    folder = filedialog.askdirectory()
+    try:
+        folder = filedialog.askdirectory()
+    except: 
+    
     listSong = listFiles(folder)
     for song in listSong:
         try:
