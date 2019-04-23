@@ -25,14 +25,50 @@ librosa['n_fft'] = 4096
 minDB = -20
 neighborSize = 15
 maxDelTime = 10 
-masterDict = defaultdict(dict)
-songList= defaultdict(dict)
+masterDict = defaultdict(dict) 
+songList = defaultdict(dict) 
 matchThresh = 10
 songsPlayed = 0
 hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
- 
+songPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/songData.csv'
 #reach goal - get song 
-#TODO fix loadDict, not loading correctly
+def startUp():
+    loadDict()
+    loadSongList()
+
+def shutdown():
+    saveDict()
+    saveSongList()
+    print('Closed')
+    
+def loadSongList(hashCsv = songPath):
+    global songList
+    try:
+        with open(hashCsv, mode='r') as infile:
+            reader = csv.reader(infile)
+            for rows in reader:
+                print(rows)
+                tempList = list()
+                songIndex = int(rows[0])
+                for elem in range(1, len(rows)):
+                    tempList.append(elem)
+                songList[songIndex] = tempList
+            
+        print(songList)
+    except:
+        print('No existing file')
+    
+
+
+def saveSongList(hashCsv = songPath, mainDict = songList):
+    with open(hashCsv, 'w') as file:
+        for hashVal in mainDict:
+            file.write(str(hashVal))
+            for elem in mainDict[hashVal]:
+                file.write(",")
+                file.write(str(elem))
+            file.write("\n")
+
 # might make sense to use default dict for speed purposes
 def loadDict(hashCsv = hashPath):
     #create new csv or load dict as csv
@@ -45,14 +81,16 @@ def loadDict(hashCsv = hashPath):
             reader = csv.reader(infile)
             for rows in reader:
                 tempList = list()
-                hashVal = rows[0]
-                for elem in range(1, len(rows) + 1,2):
-                    (index, time) = rows[elem], rows[elem + 1]
-                    print(index,time)
+                hashVal = int(rows[0])
+                for elem in range(1, len(rows),2):
+                    index, time = rows[elem], rows[elem + 1]
+                    tempTuple = (index,time)
+                    tempList.append(tempTuple)
+                masterDict[hashVal] = tempList
     except:
         print('No existing file') 
 
-   
+
 def saveDict(hashCsv = hashPath, mainDict = masterDict):
     with open(hashCsv, 'w') as file:
         for hashVal in mainDict:
@@ -62,6 +100,7 @@ def saveDict(hashCsv = hashPath, mainDict = masterDict):
                 file.write(str(elem[0]))
                 file.write(",")
                 file.write(str(elem[1]))
+
             file.write("\n")
 
 
@@ -111,8 +150,6 @@ def fingerprint(song):
     #createHash(indexList,15,masterDict,songID)
     #saveDict('hashSong.csv', masterDict)
     pass
-    '''
-'''
     #plt.show()
     timeIdx = list()
     freqIdx = list()
@@ -130,6 +167,7 @@ def fingerprint(song):
 def addToLibrary(song):
     print(song)
     songIndex = songData(song)
+    print('Song Indexed')
     if songIndex != None:
         indexList = fingerprint(song)
         if indexList != None:
@@ -250,8 +288,12 @@ def recognize(songPath = None):
     fftFilter, indexList = peakArray(fftTransform, neighborSize)
     fftFilter= fftFilter.transpose()
     #print(indexList,neighborSize, masterDict, matchThresh)
-    SongID, offset = match(indexList,neighborSize, masterDict, matchThresh)
-    return SongID, offset
+    songIndex, offset = match(indexList,neighborSize, masterDict, matchThresh)
+    print(songIndex,offset)
+    if songIndex != None:
+        return songList[songIndex][0]
+    else:
+        return ('Song not found')
 
 #After fingerprinting song,it checks if it is already in the database
 def match(peakIndex, fanOut, mainDict, matchThresh):

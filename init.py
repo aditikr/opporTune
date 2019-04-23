@@ -7,7 +7,7 @@ import opportune
 #TODO add UI for when song is found or not found 
 
 master = Tk()
-#opportune.loadDict()
+opportune.startUp()
 
 def uploadWrapper():
     master.withdraw()
@@ -58,7 +58,7 @@ def listFiles(path):
         return files
  
 def quit():
-    opportune.saveDict()
+    opportune.shutdown()
 
 upload = Button(master, text =" Upload a song", command=uploadWrapper)
 upload.pack()
