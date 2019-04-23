@@ -25,29 +25,31 @@ librosa['n_fft'] = 4096
 minDB = -20
 neighborSize = 15
 maxDelTime = 10 
-masterDict = dict()
+masterDict = defaultdict(dict)
 songList= defaultdict(dict)
 matchThresh = 10
 songsPlayed = 0
 hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
-
-
+ 
 #reach goal - get song 
-
-#TODO fix loaddict 
+#TODO fix loadDict, not loading correctly
 # might make sense to use default dict for speed purposes
-def loadDict(hashCsv):
+def loadDict(hashCsv = hashPath):
     #create new csv or load dict as csv
     # if loading i must parse into 1 dict where keys are a list with tuples in them
     #https://docs.python.org/3/library/csv.html
     #https://stackoverflow.com/questions/6740918/creating-a-dictionary-from-a-csv-file
+    global masterDict
     try:
         with open(hashCsv, mode='r') as infile:
             reader = csv.reader(infile)
-            masterDict = {rows[0]:rows[1:] for rows in reader}
-            print(masterDict)
+            for rows in reader:
+                tempList = list()
+                hashVal = rows[0]
+                for elem in range(1, len(rows) + 1,2):
+                    (index, time) = rows[elem], rows[elem + 1]
+                    print(index,time)
     except:
-        masterDict = dict()
         print('No existing file') 
 
    
@@ -62,10 +64,13 @@ def saveDict(hashCsv = hashPath, mainDict = masterDict):
                 file.write(str(elem[1]))
             file.write("\n")
 
-#TODO check if song already in database 
+
 def songData(song):
-    dataList = list()
     songID = os.path.basename(os.path.normpath(song))#https://stackoverflow.com/questions/3925096/how-to-get-only-the-last-part-of-a-path-in-python
+    for addedSong in songList:
+        if songID == songList[addedSong][0]:
+            return None #Do make sure its not added to database twice
+    dataList = list()
     data = eyed3.load(song)
     songIndex = len(songList)
     dataList.append(songID)
@@ -84,7 +89,13 @@ def songData(song):
 #Use this as template, if lost /Users/aditiraghavan/Documents/PraNos.mp3
 #Fingerprints the song sample
 def fingerprint(song):
-    y, sr = librosa.load(song)
+    print(song)
+    try:
+        y, sr = librosa.load(song)
+        print('Parsed song')
+    except:
+        print('Could not parse song')
+        return None
     fftTransform = np.abs(librosa.core.stft(y=y, n_fft = 4096, hop_length = 2048) )
     fftTransform = librosa.power_to_db(fftTransform, ref = np.max)
     fftTransform = fftTransform.transpose()
@@ -117,10 +128,15 @@ def fingerprint(song):
     plt.show()'''
 
 def addToLibrary(song):
-    songID = os.path.basename(os.path.normpath(song))
-    indexList = fingerprint(song)
+    print(song)
     songIndex = songData(song)
-    createHash(indexList,15,masterDict,songIndex)
+    if songIndex != None:
+        indexList = fingerprint(song)
+        if indexList != None:
+            createHash(indexList,15,masterDict,songIndex)
+            print('Added to Library')
+    else:
+        print('Already in Library')
 
 #https://librosa.github.io/librosa/generated/librosa.core.power_to_db.html
 #for more information https://matplotlib.org/     

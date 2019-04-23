@@ -31,17 +31,18 @@ def libraryWrapper():
     #https://pythonspot.com/tk-file-dialogs/
     try:
         folder = filedialog.askdirectory()
-    except: 
-    
+    except:
+        ("Error finding Directory") 
     listSong = listFiles(folder)
     for song in listSong:
         try:
             opportune.addToLibrary(song)
+            print("Added song")
         except:
             print("Error reading file, moving to next one")
-    opportune.saveDict()
     library.destroy()
     master.deiconify()
+    print('Done adding!')
     pass
 
 #Taken from https://www.cs.cmu.edu/~112/notes/notes-recursive-applications.html#listFiles
@@ -55,7 +56,9 @@ def listFiles(path):
         for filename in os.listdir(path):
             files += listFiles(path + "/" + filename)
         return files
-    
+ 
+def quit():
+    opportune.saveDict()
 
 upload = Button(master, text =" Upload a song", command=uploadWrapper)
 upload.pack()
@@ -63,5 +66,9 @@ record = Button(master, text = "Record a song with a microphone", command = reco
 record.pack()
 addToLibrary = Button(master, text = "Add to Library", command = libraryWrapper)
 addToLibrary.pack()
+
+#https://stackoverflow.com/questions/111155/how-do-i-handle-the-window-close-event-in-tkinter
+master.protocol("WM_DELETE_WINDOW", quit)
+
 
 mainloop()
