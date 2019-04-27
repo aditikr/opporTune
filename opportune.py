@@ -22,27 +22,28 @@ librosa['sr'] = 44100
 librosa['hop_length'] = 2048 #windowing size
 librosa['n_fft'] = 4096
 
-minDB = -20
-neighborSize = 15
+minDB = -10
+neighborSize = 30
 maxDelTime = 10 
 masterDict = defaultdict(dict) 
-songList = defaultdict(dict) 
+songDict = defaultdict(dict) 
 matchThresh = 10
 songsPlayed = 0
 hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
 songPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/songData.csv'
 #reach goal - get song 
+
 def startUp():
     loadDict()
-    loadSongList()
+    loadSongDict()
 
 def shutdown():
     saveDict()
-    saveSongList()
+    saveSongDict()
     print('Closed')
     
-def loadSongList(hashCsv = songPath):
-    global songList
+def loadSongDict(hashCsv = songPath):
+    global songDict
     try:
         with open(hashCsv, mode='r') as infile:
             reader = csv.reader(infile)
@@ -51,16 +52,16 @@ def loadSongList(hashCsv = songPath):
                 tempList = list()
                 songIndex = int(rows[0])
                 for elem in range(1, len(rows)):
-                    tempList.append(elem)
-                songList[songIndex] = tempList
+                    tempList.append(rows[elem])
+                songDict[songIndex] = tempList
             
-        print(songList)
+        print(songDict)
     except:
         print('No existing file')
     
 
 
-def saveSongList(hashCsv = songPath, mainDict = songList):
+def saveSongDict(hashCsv = songPath, mainDict = songDict):
     with open(hashCsv, 'w') as file:
         for hashVal in mainDict:
             file.write(str(hashVal))
@@ -83,7 +84,7 @@ def loadDict(hashCsv = hashPath):
                 tempList = list()
                 hashVal = int(rows[0])
                 for elem in range(1, len(rows),2):
-                    index, time = rows[elem], rows[elem + 1]
+                    index, time = int(rows[elem]), int(rows[elem + 1])
                     tempTuple = (index,time)
                     tempList.append(tempTuple)
                 masterDict[hashVal] = tempList
@@ -106,12 +107,12 @@ def saveDict(hashCsv = hashPath, mainDict = masterDict):
 
 def songData(song):
     songID = os.path.basename(os.path.normpath(song))#https://stackoverflow.com/questions/3925096/how-to-get-only-the-last-part-of-a-path-in-python
-    for addedSong in songList:
-        if songID == songList[addedSong][0]:
-            return None #Do make sure its not added to database twice
+    for addedSong in songDict:
+        if songID == songDict[addedSong][0]:
+            return None #To make sure its not added to database twice
     dataList = list()
     data = eyed3.load(song)
-    songIndex = len(songList)
+    songIndex = len(songDict)
     dataList.append(songID)
     try:
         dataList.append(data.tag.artist)
@@ -121,9 +122,23 @@ def songData(song):
         dataList.append(data.tag.album)
     except:
         dataList.append("Unknown")
-    songList[songIndex] = dataList
+    songDict[songIndex] = dataList
     return songIndex
-            
+  
+#TODO remove invalid data types from songdict
+def addToLibrary(song):
+    print(song)
+    songIndex = songData(song)
+    print('Song Indexed')
+    if songIndex != None:
+        indexList = fingerprint(song)
+        if indexList != None:
+            createHash(indexList,15,masterDict,songIndex)
+            print('Added to Library')
+        else:
+            print('Invalid data type')
+    else:
+        print('Already in Library')
     
 #Use this as template, if lost /Users/aditiraghavan/Documents/PraNos.mp3
 #Fingerprints the song sample
@@ -164,18 +179,6 @@ def fingerprint(song):
     plt.gca().invert_yaxis()
     plt.show()'''
 
-def addToLibrary(song):
-    print(song)
-    songIndex = songData(song)
-    print('Song Indexed')
-    if songIndex != None:
-        indexList = fingerprint(song)
-        if indexList != None:
-            createHash(indexList,15,masterDict,songIndex)
-            print('Added to Library')
-    else:
-        print('Already in Library')
-
 #https://librosa.github.io/librosa/generated/librosa.core.power_to_db.html
 #for more information https://matplotlib.org/     
 #Fingerprints in song, shown in a figure 
@@ -187,7 +190,7 @@ def displaySpectrogram(spec, yAxis,num):
     plt.tight_layout()
     
 
-#Creates a new array of the same size as the melTransform and is filled with
+#Creates a new array of the same size as the transform and is filled with
 # 0's and 1's , where 1's indicate peaks
 def peakArray(arr2D, neighborSize):
     indexList = list()
@@ -291,7 +294,7 @@ def recognize(songPath = None):
     songIndex, offset = match(indexList,neighborSize, masterDict, matchThresh)
     print(songIndex,offset)
     if songIndex != None:
-        return songList[songIndex][0]
+        return songDict[songIndex][0]
     else:
         return ('Song not found')
 
@@ -299,7 +302,7 @@ def recognize(songPath = None):
 def match(peakIndex, fanOut, mainDict, matchThresh):
     #https://stackoverflow.com/questions/29348345/declaring-a-multi-dimensional-dictionary-in-python
     count = defaultdict(dict)
-    threshold = 20
+    threshold = 50
     for i in range(len(peakIndex)):
         for j in range(fanOut):
             if i + j < len(peakIndex):
