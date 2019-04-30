@@ -14,6 +14,9 @@ from collections import defaultdict
 import pyaudio
 import wave
 import eyed3
+import sounddevice
+from playsound import playsound #need to import PyObjC
+
 
 #Change presets of the library to the ones needed for our audio analysis
 #From https://librosa.github.io/librosa/auto_examples/plot_presets.html
@@ -27,11 +30,22 @@ neighborSize = 30
 maxDelTime = 10 
 masterDict = defaultdict(dict) 
 songDict = defaultdict(dict) 
-matchThresh = 10
-songsPlayed = 0
+#TODO reload topSongDict and topArtistDict
+topSongDict = defaultdict(dict)  
+matchThresh = 50
+reducedThresh = 25
+numAttempted = 0
+numIdentified = 0 
+
+#topArtist = findTopArtist()
+
+
 hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
 songPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/songData.csv'
-#reach goal - get song 
+
+
+
+#TODO reach goal - get song 
 
 def startUp():
     loadDict()
@@ -59,8 +73,6 @@ def loadSongDict(hashCsv = songPath):
     except:
         print('No existing file')
     
-
-
 def saveSongDict(hashCsv = songPath, mainDict = songDict):
     with open(hashCsv, 'w') as file:
         for hashVal in mainDict:
@@ -104,28 +116,59 @@ def saveDict(hashCsv = hashPath, mainDict = masterDict):
 
             file.write("\n")
 
+def findTopSong():
+    max = 0
+    maxSong = None
+    for song in topSongDict:
+        if topSongDict[song] > max:
+            max =  topSongDict[song]
+            maxSong = song
+    return (max,maxSong)
+    
 
 def songData(song):
     songID = os.path.basename(os.path.normpath(song))#https://stackoverflow.com/questions/3925096/how-to-get-only-the-last-part-of-a-path-in-python
     for addedSong in songDict:
         if songID == songDict[addedSong][0]:
+            topSongDict[songID] += 1
+            artist = findArtist(songID)        
             return None #To make sure its not added to database twice
+    topSongDict[songID] = 1
     dataList = list()
     data = eyed3.load(song)
     songIndex = len(songDict)
     dataList.append(songID)
     try:
-        dataList.append(data.tag.artist)
+        artist = dataList.append(data.tag.artist)
+        if artist in topArtistDict:
+            topArtistDict[artist] +=1
+        else:
+            topArtistDict[artist] = 1
+            
     except:
         dataList.append("Unknown")
     try:
         dataList.append(data.tag.album)
     except:
         dataList.append("Unknown")
+    try:
+        dataList.append(song)
+    except:
+        dataList.append("Unknown path")
     songDict[songIndex] = dataList
     return songIndex
   
+def getSongData(songIndex):
+    return songDict[songIndex][0], songDict[songIndex][1], songDict[songIndex][3] #song, artists, filepath
+    
+def playFile(path):
+    print(path)
+    #y, sr = librosa.load(path)
+    playsound(path)
+    
+    
 #TODO remove invalid data types from songdict
+#try to keep track of number of files added and make that the index
 def addToLibrary(song):
     print(song)
     songIndex = songData(song)
@@ -243,7 +286,8 @@ def createHash(peakIndex, fanOut, mainDict, songID):
                     songTime = (songID,time1)
                     addToDict(tempKey,songTime, mainDict)
     pass
-    
+ 
+
 ## Recognizer   
 FORMAT = pyaudio.paInt16
 CHANNELS = 1
@@ -252,8 +296,7 @@ HOPLEN = 1024
 RECORDSECONDS = 5
 songsPlayed = 0 
 waveOutput = "record.wav"
-
-
+    
 #Taken from https://stackoverflow.com/questions/35344649/reading-input-sound-signal-using-python
 def readMic():
     audio = pyaudio.PyAudio()
@@ -279,7 +322,7 @@ def readMic():
     return waveOutput 
    
     
-def recognize(songPath = None):
+def recognize(songPath = None, easy = False):
     if songPath == None: 
         song = readMic()
     else: 
@@ -288,21 +331,30 @@ def recognize(songPath = None):
     fftTransform = np.abs(librosa.core.stft(y=y, n_fft = 4096,hop_length = 2048) )
     fftTransform = librosa.power_to_db(fftTransform, ref = np.max)
     fftTransform = fftTransform.transpose()
+    
     fftFilter, indexList = peakArray(fftTransform, neighborSize)
     fftFilter= fftFilter.transpose()
     #print(indexList,neighborSize, masterDict, matchThresh)
-    songIndex, offset = match(indexList,neighborSize, masterDict, matchThresh)
-    print(songIndex,offset)
-    if songIndex != None:
-        return songDict[songIndex][0]
+    if easy == False:
+        songIndex, offset = match(indexList,neighborSize, masterDict, matchThresh)
     else:
-        return ('Song not found')
+        songIndex, offset = match(indexList,neighborSize, masterDict, reducedThresh)
+    global numAttempted
+    global numIdentified
+    numAttempted += 1 
+    if songIndex != None:
+        numIdentified += 1
+        
+        return songIndex
+    else:
+        print('Song not found')
+        
+        return None
 
 #After fingerprinting song,it checks if it is already in the database
 def match(peakIndex, fanOut, mainDict, matchThresh):
     #https://stackoverflow.com/questions/29348345/declaring-a-multi-dimensional-dictionary-in-python
     count = defaultdict(dict)
-    threshold = 50
     for i in range(len(peakIndex)):
         for j in range(fanOut):
             if i + j < len(peakIndex):
@@ -320,7 +372,7 @@ def match(peakIndex, fanOut, mainDict, matchThresh):
                             offset = time - time1
                             if songID in count and offset in count[songID]:
                                 count[songID][offset] += 1 
-                                if count[songID][offset] == threshold:
+                                if count[songID][offset] == matchThresh:
                                     return songID,offset
                             else: 
                                 count[songID][offset] = 1

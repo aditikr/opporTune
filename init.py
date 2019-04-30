@@ -4,6 +4,7 @@ from tkinter import filedialog
 from tkinter import *
 import opportune
 
+
 #TODO add UI for when song is found or not found 
 
 opportune.startUp()
@@ -23,9 +24,9 @@ mainloop()'''
 
 ##COMPLETE REFORMAT OF UI
 
-def recordWrapper():
+def recordWrapper(easy = False):
     print ("Time to record a song")
-    print(opportune.recognize())
+    return opportune.recognize(easy = easy)
 
 def libraryWrapper():
     print ("Add to library")
@@ -63,28 +64,28 @@ def listFiles(path):
 
 def init(data):
     data.mode = "start"
-    # load data.xyz as appropriate
+    data.fill = "medium purple"
+    data.ActFill = "thistle" 
+    data.textFill = "black"
+    data.song = None
+    data.artist = None
+    data.path = None
     pass
  
-def startPressed(data,x,y):
-    butWidth = 75
-    if x > data.width/2 - butWidth and x < data.width/2 + butWidth:
-        return True
-    if y > 5*data.height/8 and y < 6*data.height/8:
-        return True
-    return False
     
 def startMousePressed(event, data, allTags):
-    x = event.x
-    y = event.y
-    if startPressed(data,x,y):
-        data.mode = "mainPage"  
+    if "start" in allTags:
+        data.mode = "mainPage"
     pass
-
 
 def mainPageMousePressed(event,data, allTags):
     if "listen" in allTags:
-        recordWrapper()
+        data.songIndex = recordWrapper()
+        if data.songIndex != None:
+            data.mode = "songFound"
+        else:
+            data.mode = "songTryAgain"
+        
     elif "upload" in allTags:
         libraryWrapper()
     elif "help" in allTags:
@@ -92,11 +93,50 @@ def mainPageMousePressed(event,data, allTags):
     elif "stats" in allTags:
         data.mode = "stats"
     pass
-    
 
+def helpAndStatsMousePressed(event,data, allTags):
+    if "back" in allTags:
+        data.mode = "mainPage"
+    pass
+
+def songFoundMousePressed(event,data, allTags):
+    if "play" in allTags:
+        if data.path != None:
+            opportune.playFile(data.path)
+            print('Played song')
+            #TODO possibly change song playing feature so it can be stopped
+        
+    elif "back" in allTags:
+        #opportune.playFile(None)
+        data.mode = "mainPage"
+    pass
+
+def songTryAgainMousePressed(event,data, allTags):
+    if "tryAgain" in allTags:
+        data.songIndex = recordWrapper(True)
+        if data.songIndex != None:
+            data.mode = "songFound"
+        else:
+            data.mode = "songNotFound"
+    elif "back" in allTags:
+        data.mode = "mainPage"
+    pass
+    
+def songNotFoundMousePressed(event,data, allTags):
+    if "back" in allTags:
+        data.mode = "mainPage" 
+    pass
+    
 def mousePressed(event, data, allTags):
     if data.mode == "start": startMousePressed(event, data, allTags)
-    if data.mode == "mainPage": mainPageMousePressed(event,data, allTags)
+    elif data.mode == "mainPage": mainPageMousePressed(event,data, allTags)
+    elif data.mode == "help" or data.mode == "stats": helpAndStatsMousePressed(event,data, allTags)
+    elif data.mode == "songFound":
+        songFoundMousePressed(event,data, allTags)
+    elif data.mode == "songTryAgain":
+        songTryAgainMousePressed(event,data, allTags)
+    elif data.mode == "songNotFound":
+        songNotFoundMousePressed(event,data, allTags)
     pass
 
 def keyPressed(event, data):
@@ -107,7 +147,7 @@ def startRedrawAll(canvas, data):
     butWidth = 75
     canvas.create_rectangle(0,data.width, 0, data.height, fill = "light slate blue")
     canvas.create_text(data.width/2, 100, text = 'Opportune It!')
-    canvas.create_rectangle(data.width/2 - butWidth , 5*data.height/8 , data.width/2 + butWidth, 6*data.height/8, fill = "medium purple")
+    canvas.create_rectangle(data.width/2 - butWidth , 5*data.height/8 , data.width/2 + butWidth, 6*data.height/8, fill = "medium purple", tags = "start")
     pass
 
 def mainRedrawAll(canvas,data):
@@ -116,26 +156,58 @@ def mainRedrawAll(canvas,data):
     butHeight = 20
     canvas.create_text(data.width/2, 100, text = "Main Page")
     canvas.create_text(margin,margin, text= "Stats", tags = "stats" )
-    canvas.create_text(margin,data.height - margin, text= 'Help', tags = "help")
+    canvas.create_text(data.width - margin, margin, text= 'Help', tags = "help")
     canvas.create_text(data.width/4, 5*data.height/8,  text = "Listen" , fill = "medium purple", activefill = "thistle", tags = "listen")
-    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Upload" , fill = "medium purple", activefill = "thistle", tags = "upload")
+    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Add Music" , fill = "medium purple", activefill = "thistle", tags = "upload")
  
  
 def statsRedrawAll(canvas,data):
     margin = 20 
     canvas.create_text(data.width/2, margin, text = 'Your Stats')
+    topSong, plays = opportune.findTopSong()
+    canvas.create_text(data.width/2, margin*2, text = str(topSong) + str(plays))
+    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
+
+
 
 def helpRedrawAll(canvas,data):
-    margin = 20 
+    margin = 40 
     canvas.create_text(data.width/2, margin, text = 'Help')
+    canvas.create_text(2*margin, 2*margin, \
+    text= "\tPress upload to analyze an audio file on your computer\n\tPress listen to use the microphone on your computer\n\tPress the back button to return to the main page")
+    canvas.create_text(data.width - margin, margin, text= 'Back', tags = "back")
+    
+    
+def songFoundRedrawAll(canvas,data):
+    spacing = 20 
+    songIndex = data.songIndex
+    data.song, data.artist, data.path = opportune.getSongData(songIndex)
+    canvas.create_text(data.width/2, data.height/2, text = str(data.song))
+    canvas.create_text(data.width/2, data.height/2+ spacing, text = str(data.artist))
+    canvas.create_text(data.width/4, 5*data.height/8,  text = "Play Song" , fill = "medium purple", activefill = "thistle", tags = "play")
+    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
+    pass
+    
+def songTryAgainRedrawAll(canvas,data):
+    canvas.create_text(data.width/2, data.height/2, text = "Song not found, try again!")
+    canvas.create_text(data.width/4, 5*data.height/8,  text = "Try Again" , fill = "medium purple", activefill = "thistle", tags = "tryAgain")
+    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
+    pass
+
+def songNotFoundRedrawAll(canvas,data):
+    canvas.create_text(data.width/2, data.height/2, text = "Song not found, we're sorry!'")
+    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
+    pass
     
 
-#TODO finish all modes
 def redrawAll(canvas, data):
     if data.mode == "start": startRedrawAll(canvas, data)
-    if data.mode == "mainPage": mainRedrawAll(canvas,data)
-    if data.mode == "stats": statsRedrawAll(canvas,data)
-    if data.mode == "help": helpRedrawAll(canvas,data)
+    elif data.mode == "mainPage": mainRedrawAll(canvas,data)
+    elif data.mode == "stats": statsRedrawAll(canvas,data)
+    elif data.mode == "help": helpRedrawAll(canvas,data)
+    elif data.mode == "songFound": songFoundRedrawAll(canvas,data)
+    elif data.mode == "songTryAgain": songTryAgainRedrawAll(canvas,data)
+    elif data.mode == "songNotFound": songNotFoundRedrawAll(canvas,data)
     # draw in canvas
     pass
 
