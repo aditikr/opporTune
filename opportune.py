@@ -25,7 +25,7 @@ librosa['sr'] = 44100
 librosa['hop_length'] = 2048 #windowing size
 librosa['n_fft'] = 4096
 
-minDB = -10
+minDB = -30
 neighborSize = 30
 maxDelTime = 10 
 masterDict = defaultdict(dict) 

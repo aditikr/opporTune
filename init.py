@@ -5,24 +5,8 @@ from tkinter import *
 import opportune
 
 
-#TODO add UI for when song is found or not found 
-
 opportune.startUp()
-
-'''   
- 
-def quit():
-    opportune.shutdown()
-
-
-
-#https://stackoverflow.com/questions/111155/how-do-i-handle-the-window-close-event-in-tkinter
-master.protocol("WM_DELETE_WINDOW", quit)
-
-
-mainloop()'''
-
-##COMPLETE REFORMAT OF UI
+#https://pixabay.com/vectors/notes-music-music-notes-clef-1417670/
 
 def recordWrapper(easy = False):
     print ("Time to record a song")
@@ -53,30 +37,29 @@ def listFiles(path):
     else:
         # Recursive Case: create a list of all the recursive results from the files in the folder
         files = [ ]
-        for filename in os.listdir(path):
-            files += listFiles(path + "/" + filename)
-        return files
+        try:
+            for filename in os.listdir(path):
+                files += listFiles(path + "/" + filename)
+            return files
+        except:
+            return []
 
 #Taken from https://www.cs.cmu.edu/~112/notes/notes-animations-part1.html
-####################################
-# customize these functions
-####################################
 
 def init(data):
-    data.mode = "start"
-    data.fill = "medium purple"
-    data.ActFill = "thistle" 
-    data.textFill = "black"
+    data.mode = "mainPage"
+    data.fill = "black"
+    data.actFill = "white" 
     data.song = None
     data.artist = None
     data.path = None
+    data.logo = PhotoImage(file = '/Users/aditiraghavan/Documents/GitHub/opporTune/opportuneLogo.png')
+    #https://www.dafont.com/static.font?text=opportune
+    data.mainFont = "Dimitri 20"
+    data.largerFont = "Dimitri 35"
+    data.margin = 40
     pass
  
-    
-def startMousePressed(event, data, allTags):
-    if "start" in allTags:
-        data.mode = "mainPage"
-    pass
 
 def mainPageMousePressed(event,data, allTags):
     if "listen" in allTags:
@@ -101,13 +84,13 @@ def helpAndStatsMousePressed(event,data, allTags):
 
 def songFoundMousePressed(event,data, allTags):
     if "play" in allTags:
+        print(data.path)
         if data.path != None:
             opportune.playFile(data.path)
             print('Played song')
             #TODO possibly change song playing feature so it can be stopped
         
     elif "back" in allTags:
-        #opportune.playFile(None)
         data.mode = "mainPage"
     pass
 
@@ -128,8 +111,7 @@ def songNotFoundMousePressed(event,data, allTags):
     pass
     
 def mousePressed(event, data, allTags):
-    if data.mode == "start": startMousePressed(event, data, allTags)
-    elif data.mode == "mainPage": mainPageMousePressed(event,data, allTags)
+    if data.mode == "mainPage": mainPageMousePressed(event,data, allTags)
     elif data.mode == "help" or data.mode == "stats": helpAndStatsMousePressed(event,data, allTags)
     elif data.mode == "songFound":
         songFoundMousePressed(event,data, allTags)
@@ -143,72 +125,60 @@ def keyPressed(event, data):
     # use event.char and event.keysym
     pass
 
-def startRedrawAll(canvas, data):
-    butWidth = 75
-    canvas.create_rectangle(0,data.width, 0, data.height, fill = "light slate blue")
-    canvas.create_text(data.width/2, 100, text = 'Opportune It!')
-    canvas.create_rectangle(data.width/2 - butWidth , 5*data.height/8 , data.width/2 + butWidth, 6*data.height/8, fill = "medium purple", tags = "start")
-    pass
-
 def mainRedrawAll(canvas,data):
-    margin = 30
+    margin = 75
     butWidth = 50
     butHeight = 20
-    canvas.create_text(data.width/2, 100, text = "Main Page")
-    canvas.create_text(margin,margin, text= "Stats", tags = "stats" )
-    canvas.create_text(data.width - margin, margin, text= 'Help', tags = "help")
-    canvas.create_text(data.width/4, 5*data.height/8,  text = "Listen" , fill = "medium purple", activefill = "thistle", tags = "listen")
-    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Add Music" , fill = "medium purple", activefill = "thistle", tags = "upload")
- 
+    canvas.create_text(data.width/2, margin, text= "Opportune", font = 
+    ('Dimitri Swank', 40) )
+    canvas.create_text(margin,margin, text= "Stats", tags = "stats", font = 
+    data.mainFont, activefill = data.actFill)
+    canvas.create_text(data.width - margin, margin, text= 'Help', tags = "help", fill = data.fill, activefill = data.actFill, font = data.mainFont)
+    canvas.create_text(data.width/2, data.height/2,  text = "Listen" , fill = data.fill, activefill = data.actFill, font = data.largerFont, tags = "listen")
+    canvas.create_text(data.width/2, 3*data.height/4,  text = "Add Music" , fill = data.fill, activefill = data.actFill, font = data.mainFont, tags = "upload") 
  
 def statsRedrawAll(canvas,data):
-    margin = 20 
-    canvas.create_text(data.width/2, margin, text = 'Your Stats')
+    canvas.create_text(data.width/2, data.margin, text = 'Stats', font = data.largerFont)
     topSong, plays = opportune.findTopSong()
-    canvas.create_text(data.width/2, margin*2, text = str(topSong) + str(plays))
-    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
-
-
+    canvas.create_text(data.width/4, 3*data.margin, text = "Top Song:" + str(topSong), font = data.mainFont)
+    canvas.create_text(data.width/4, 4*data.margin, text = "Top Artist:", font = data.mainFont)
+    canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")
 
 def helpRedrawAll(canvas,data):
-    margin = 40 
-    canvas.create_text(data.width/2, margin, text = 'Help')
-    canvas.create_text(2*margin, 2*margin, \
-    text= "\tPress upload to analyze an audio file on your computer\n\tPress listen to use the microphone on your computer\n\tPress the back button to return to the main page")
-    canvas.create_text(data.width - margin, margin, text= 'Back', tags = "back")
+    canvas.create_text(data.width/2, data.margin, text = 'Help', font = data.largerFont)
+    canvas.create_text(data.width/4, 3*data.margin, \
+    text= "\n\t\t\tPress upload to analyze an audio file on your computer\n\n\t\t\tPress listen to use the microphone on your computer\n\n\t\t\tPress the back button to return to the main page", font = "Dimitri 17", justify = "center")
+    canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")
     
-    
+#TODO fix play button
 def songFoundRedrawAll(canvas,data):
-    spacing = 20 
     songIndex = data.songIndex
     data.song, data.artist, data.path = opportune.getSongData(songIndex)
-    canvas.create_text(data.width/2, data.height/2, text = str(data.song))
-    canvas.create_text(data.width/2, data.height/2+ spacing, text = str(data.artist))
-    canvas.create_text(data.width/4, 5*data.height/8,  text = "Play Song" , fill = "medium purple", activefill = "thistle", tags = "play")
-    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
+    canvas.create_text(data.width/2, data.height/2, text = str(data.song), font = data.mainFont,)
+    canvas.create_text(data.width/2, data.height/2+ data.margin, text = str(data.artist), font = data.mainFont)
+    canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", text = "Play Song" , fill = data.fill, activefill = data.actFill, font = data.mainFont, tags = "play")
+    canvas.create_text(3*data.width/4, 3*data.height/4, anchor = "nw", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")    
     pass
     
 def songTryAgainRedrawAll(canvas,data):
-    canvas.create_text(data.width/2, data.height/2, text = "Song not found, try again!")
-    canvas.create_text(data.width/4, 5*data.height/8,  text = "Try Again" , fill = "medium purple", activefill = "thistle", tags = "tryAgain")
-    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
+    canvas.create_text(data.width/2, data.height/3, text = "Song not found, try again!",font = data.mainFont,)
+    canvas.create_text(3*data.width/4, 3*data.height/4, anchor = "n", text = "Try Again" , fill = data.fill, activefill = data.actFill, font = data.mainFont, tags = "tryAgain")
+    canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")
     pass
 
 def songNotFoundRedrawAll(canvas,data):
-    canvas.create_text(data.width/2, data.height/2, text = "Song not found, we're sorry!'")
-    canvas.create_text(3*data.width/4, 5*data.height/8,  text = "Back" , fill = "medium purple", activefill = "thistle", tags = "back")
-    pass
-    
+    canvas.create_text(data.width/2, data.height/2, text = "Song not found, we're sorry!",font = data.mainFont )
+    canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")    
+    pass 
 
 def redrawAll(canvas, data):
-    if data.mode == "start": startRedrawAll(canvas, data)
-    elif data.mode == "mainPage": mainRedrawAll(canvas,data)
+    canvas.create_rectangle(0,0,data.width,data.height, fill = "salmon")
+    if data.mode == "mainPage": mainRedrawAll(canvas,data)
     elif data.mode == "stats": statsRedrawAll(canvas,data)
     elif data.mode == "help": helpRedrawAll(canvas,data)
     elif data.mode == "songFound": songFoundRedrawAll(canvas,data)
     elif data.mode == "songTryAgain": songTryAgainRedrawAll(canvas,data)
     elif data.mode == "songNotFound": songNotFoundRedrawAll(canvas,data)
-    # draw in canvas
     pass
 
 ####################################
@@ -232,13 +202,19 @@ def run(width=300, height=300):
     def keyPressedWrapper(event, canvas, data):
         keyPressed(event, data)
         redrawAllWrapper(canvas, data)
-
+        
+    def quit():
+        opportune.shutdown()
+        root.destroy()
+        
     # Set up data and call init
     class Struct(object): pass
     data = Struct()
     data.width = width
     data.height = height
     root = Tk()
+    #https://stackoverflow.com/questions/111155/how-do-i-handle-the-window-close-event-in-tkinter
+    root.protocol("WM_DELETE_WINDOW", quit)
     root.resizable(width=False, height=False) # prevents resizing window
     init(data)
     # create the root and the canvas
@@ -254,5 +230,9 @@ def run(width=300, height=300):
     # and launch the app
     root.mainloop()  # blocks until window is closed
     print("bye!")
+    
+  
 
-run(400, 200)
+
+    
+run(500, 300)
