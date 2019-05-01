@@ -84,11 +84,9 @@ def helpAndStatsMousePressed(event,data, allTags):
 
 def songFoundMousePressed(event,data, allTags):
     if "play" in allTags:
-        print(data.path)
-        if data.path != None:
-            opportune.playFile(data.path)
+        if data.song != None:
+            opportune.playFile(data.song)
             print('Played song')
-            #TODO possibly change song playing feature so it can be stopped
         
     elif "back" in allTags:
         data.mode = "mainPage"
@@ -150,12 +148,13 @@ def helpRedrawAll(canvas,data):
     text= "\n\t\t\tPress upload to analyze an audio file on your computer\n\n\t\t\tPress listen to use the microphone on your computer\n\n\t\t\tPress the back button to return to the main page", font = "Dimitri 17", justify = "center")
     canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")
     
-#TODO fix play button
 def songFoundRedrawAll(canvas,data):
     songIndex = data.songIndex
     data.song, data.artist, data.path = opportune.getSongData(songIndex)
-    canvas.create_text(data.width/2, data.height/2, text = str(data.song), font = data.mainFont,)
-    canvas.create_text(data.width/2, data.height/2+ data.margin, text = str(data.artist), font = data.mainFont)
+    canvas.create_text(data.width/2, data.height/4, text = "Found", font = 
+    ('Dimitri Swank', 40) ,anchor = "s")
+    canvas.create_text(data.width/2, data.height/2 - data.margin, text = "Song: " + str(data.song), font = data.largerFont,)
+    canvas.create_text(data.width/2, data.height/2 + 20, text = "Artist:" + str(data.artist), font = data.mainFont, anchor = "s")
     canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", text = "Play Song" , fill = data.fill, activefill = data.actFill, font = data.mainFont, tags = "play")
     canvas.create_text(3*data.width/4, 3*data.height/4, anchor = "nw", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")    
     pass

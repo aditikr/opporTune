@@ -14,8 +14,11 @@ from collections import defaultdict
 import pyaudio
 import wave
 import eyed3
-import sounddevice
-from playsound import playsound #need to import PyObjC
+import urllib.request
+import urllib.parse
+import re
+import webbrowser as wb
+import ssl
 
 
 #Change presets of the library to the ones needed for our audio analysis
@@ -42,10 +45,6 @@ numIdentified = 0
 
 hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
 songPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/songData.csv'
-
-
-
-#TODO reach goal - get song 
 
 def startUp():
     loadDict()
@@ -161,11 +160,17 @@ def songData(song):
 def getSongData(songIndex):
     return songDict[songIndex][0], songDict[songIndex][1], songDict[songIndex][3] #song, artists, filepath
     
-def playFile(path):
-    print(path)
-    #y, sr = librosa.load(path)
-    playsound(path)
-    
+def playFile(song):
+    #https://stackoverflow.com/questions/50188882/autoplay-first-video-in-results-of-youtube-using-python/51917720
+    #https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
+    song = str(song)
+    context = ssl._create_unverified_context()
+    query_string = urllib.parse.urlencode({"search_query" : song})
+    html_cont = urllib.request.urlopen("http://www.youtube.com/results?"+query_string,context=context)
+    search_res = re.findall(r'href=\"\/watch\?v=(.{11})', html_cont.read().decode())
+    print("http://www.youtube.com/watch?v=" + search_res[0])
+    wb.open_new("http://www.youtube.com/watch?v={}".format(search_res[0]))
+        
     
 #TODO remove invalid data types from songdict
 #try to keep track of number of files added and make that the index
@@ -373,7 +378,9 @@ def match(peakIndex, fanOut, mainDict, matchThresh):
                             if songID in count and offset in count[songID]:
                                 count[songID][offset] += 1 
                                 if count[songID][offset] == matchThresh:
+                                    print(songID,offset*2048/44100)
                                     return songID,offset
+                                    file.close()
                             else: 
                                 count[songID][offset] = 1
     return None,None
