@@ -6,7 +6,6 @@ matplotlib.use("TkAgg") #implemented as there is a conflict between tkinter and 
 import matplotlib.pyplot as plt
 import numpy as np
 from presets import Preset
-from tkinter import *
 import librosa as _librosa
 import librosa.display as _display
 import csv #store hashes in csv file which can be loaded as dict
@@ -33,26 +32,27 @@ neighborSize = 30
 maxDelTime = 10 
 masterDict = defaultdict(dict) 
 songDict = defaultdict(dict) 
-#TODO reload topSongDict and topArtistDict
-topSongDict = defaultdict(dict)  
+topSongDict = defaultdict(dict)
+topArtistDict = defaultdict(dict)
 matchThresh = 50
 reducedThresh = 25
-numAttempted = 0
-numIdentified = 0 
-
-#topArtist = findTopArtist()
-
 
 hashPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/hashSong.csv'
 songPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/songData.csv'
+topSongPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/topSongDict.csv'
+topArtistPath = '/Users/aditiraghavan/Documents/GitHub/opporTune/topArtistDict.csv'
 
 def startUp():
     loadDict()
     loadSongDict()
+    topLoad(topSongPath, topSongDict)
+    topLoad(topArtistPath, 'topArtistDict')
 
 def shutdown():
     saveDict()
     saveSongDict()
+    topSave(topSongPath, topSongDict)
+    topSave(topArtistPath, topArtistDict)
     print('Closed')
     
 def loadSongDict(hashCsv = songPath):
@@ -71,6 +71,18 @@ def loadSongDict(hashCsv = songPath):
         print(songDict)
     except:
         print('No existing file')
+
+def topLoad(filename, topVar):
+    try:
+        with open(filename, mode='r') as infile:
+            reader = csv.reader(infile)
+            for rows in reader:
+                if topVar == 'topArtistDict':
+                    topArtistDict[rows[0]] = int(rows[1])
+                else:
+                    topSongDict[rows[0]] = int(rows[1])
+    except:
+        print('No existing file')
     
 def saveSongDict(hashCsv = songPath, mainDict = songDict):
     with open(hashCsv, 'w') as file:
@@ -81,6 +93,24 @@ def saveSongDict(hashCsv = songPath, mainDict = songDict):
                 file.write(str(elem))
             file.write("\n")
 
+def topSave(filename, topVar):
+    with open(filename, 'w') as file:
+        if topVar == topArtistDict:
+            for song in topArtistDict:
+                file.write(str(song))
+                file.write(",")
+                file.write(str(topArtistDict[song]))
+                file.write(",")
+                file.write("\n") 
+        else:
+            for song in topSongDict:
+                file.write(str(song))
+                file.write(",")
+                file.write(str(topSongDict[song]))
+                file.write(",")
+                file.write("\n") 
+    pass
+    
 # might make sense to use default dict for speed purposes
 def loadDict(hashCsv = hashPath):
     #create new csv or load dict as csv
@@ -115,22 +145,28 @@ def saveDict(hashCsv = hashPath, mainDict = masterDict):
 
             file.write("\n")
 
-def findTopSong():
-    max = 0
+def findTopSong(topVar):
+    maxVal = 0
     maxSong = None
-    for song in topSongDict:
-        if topSongDict[song] > max:
-            max =  topSongDict[song]
-            maxSong = song
-    return (max,maxSong)
-    
-
+    if topVar == 'topArtistDict':
+        for song in topArtistDict:
+            if topArtistDict[song] > maxVal:
+                maxVal =  topArtistDict[song]
+                maxSong = song
+    else:
+        for song in topSongDict:
+            if topSongDict[song] > maxVal:
+                maxVal =  topSongDict[song]
+                maxSong = song
+    return (maxVal,maxSong)
+     
+def numSongs():
+    return len(songDict)
+            
 def songData(song):
     songID = os.path.basename(os.path.normpath(song))#https://stackoverflow.com/questions/3925096/how-to-get-only-the-last-part-of-a-path-in-python
     for addedSong in songDict:
         if songID == songDict[addedSong][0]:
-            topSongDict[songID] += 1
-            artist = findArtist(songID)        
             return None #To make sure its not added to database twice
     topSongDict[songID] = 1
     dataList = list()
@@ -138,12 +174,7 @@ def songData(song):
     songIndex = len(songDict)
     dataList.append(songID)
     try:
-        artist = dataList.append(data.tag.artist)
-        if artist in topArtistDict:
-            topArtistDict[artist] +=1
-        else:
-            topArtistDict[artist] = 1
-            
+        artist = dataList.append(data.tag.artist) 
     except:
         dataList.append("Unknown")
     try:
@@ -160,6 +191,7 @@ def songData(song):
 def getSongData(songIndex):
     return songDict[songIndex][0], songDict[songIndex][1], songDict[songIndex][3] #song, artists, filepath
     
+#Below code must be writen in snakecase
 def playFile(song):
     #https://stackoverflow.com/questions/50188882/autoplay-first-video-in-results-of-youtube-using-python/51917720
     #https://stackoverflow.com/questions/49183801/ssl-certificate-verify-failed-with-urllib
@@ -172,7 +204,6 @@ def playFile(song):
     wb.open_new("http://www.youtube.com/watch?v={}".format(search_res[0]))
         
     
-#TODO remove invalid data types from songdict
 #try to keep track of number of files added and make that the index
 def addToLibrary(song):
     print(song)
@@ -324,8 +355,19 @@ def readMic():
     wf.setframerate(SAMPLING)
     wf.writeframes(b''.join(frames))
     wf.close()
-    return waveOutput 
-   
+    return waveOutput
+     
+def statsData(songIndex):
+    song = songDict[songIndex][0]
+    if song in topSongDict:
+        topSongDict[song] +=1
+    else:
+        topSongDict[song] = 1
+    artist = songDict[songIndex][1]
+    if artist in topArtistDict:
+        topArtistDict[artist] +=1
+    else:
+        topArtistDict[artist] = 1
     
 def recognize(songPath = None, easy = False):
     if songPath == None: 
@@ -336,7 +378,6 @@ def recognize(songPath = None, easy = False):
     fftTransform = np.abs(librosa.core.stft(y=y, n_fft = 4096,hop_length = 2048) )
     fftTransform = librosa.power_to_db(fftTransform, ref = np.max)
     fftTransform = fftTransform.transpose()
-    
     fftFilter, indexList = peakArray(fftTransform, neighborSize)
     fftFilter= fftFilter.transpose()
     #print(indexList,neighborSize, masterDict, matchThresh)
@@ -344,12 +385,8 @@ def recognize(songPath = None, easy = False):
         songIndex, offset = match(indexList,neighborSize, masterDict, matchThresh)
     else:
         songIndex, offset = match(indexList,neighborSize, masterDict, reducedThresh)
-    global numAttempted
-    global numIdentified
-    numAttempted += 1 
     if songIndex != None:
-        numIdentified += 1
-        
+        statsData(songIndex)
         return songIndex
     else:
         print('Song not found')
@@ -378,9 +415,7 @@ def match(peakIndex, fanOut, mainDict, matchThresh):
                             if songID in count and offset in count[songID]:
                                 count[songID][offset] += 1 
                                 if count[songID][offset] == matchThresh:
-                                    print(songID,offset*2048/44100)
                                     return songID,offset
-                                    file.close()
                             else: 
                                 count[songID][offset] = 1
     return None,None

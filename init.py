@@ -137,9 +137,12 @@ def mainRedrawAll(canvas,data):
  
 def statsRedrawAll(canvas,data):
     canvas.create_text(data.width/2, data.margin, text = 'Stats', font = data.largerFont)
-    topSong, plays = opportune.findTopSong()
-    canvas.create_text(data.width/4, 3*data.margin, text = "Top Song:" + str(topSong), font = data.mainFont)
-    canvas.create_text(data.width/4, 4*data.margin, text = "Top Artist:", font = data.mainFont)
+    songPlays, topSong, = opportune.findTopSong('topSongDict')
+    artistPlays, topArtist,  = opportune.findTopSong('topArtistDict')
+    print(topSong,songPlays, topArtist, artistPlays)
+    canvas.create_text(data.width/2, 3*data.margin, text = "Top Song:" + str(topSong), font = data.mainFont)
+    canvas.create_text(data.width/2, 4*data.margin, text = "Top Artist:" + str(topArtist), font = data.mainFont)
+    canvas.create_text(data.width/2, 5*data.margin, text = "Songs in Library:" + str(opportune.numSongs()), font = data.mainFont)
     canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")
 
 def helpRedrawAll(canvas,data):
@@ -153,7 +156,7 @@ def songFoundRedrawAll(canvas,data):
     data.song, data.artist, data.path = opportune.getSongData(songIndex)
     canvas.create_text(data.width/2, data.height/4, text = "Found", font = 
     ('Dimitri Swank', 40) ,anchor = "s")
-    canvas.create_text(data.width/2, data.height/2 - data.margin, text = "Song: " + str(data.song), font = data.largerFont,)
+    canvas.create_text(data.width/2, data.height/2 - data.margin, text = "Song: " + str(data.song), font = data.mainFont,)
     canvas.create_text(data.width/2, data.height/2 + 20, text = "Artist:" + str(data.artist), font = data.mainFont, anchor = "s")
     canvas.create_text(data.width/4, 3*data.height/4, anchor = "ne", text = "Play Song" , fill = data.fill, activefill = data.actFill, font = data.mainFont, tags = "play")
     canvas.create_text(3*data.width/4, 3*data.height/4, anchor = "nw", fill = data.fill, activefill = data.actFill, font = data.mainFont, text = "Back" , tags = "back")    
